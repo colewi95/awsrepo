@@ -1,0 +1,356 @@
+AWSTemplateFormatVersion: 2010-09-09
+Mappings:
+#Subnet-Mappings
+  SubnetConfig:
+    Net1VPC:
+      CIDR: 10.0.0.0/16
+    Net1SubnetPublic1:
+      CIDR: 10.0.0.0/24
+    Net1SubnetPublic2:
+      CIDR: 10.0.2.0/24
+    Net1SubnetPrivate1:
+      CIDR: 10.0.1.0/24
+    Net1SubnetPrivate2:
+      CIDR: 10.0.3.0/24
+    Net2VPC:
+      CIDR: 172.16.0.0/16
+    Net2SubnetPublic1:
+      CIDR: 172.16.0.0/24
+    Net2SubnetPublic2:
+      CIDR: 172.16.2.0/24
+    Net2SubnetPrivate1:
+      CIDR: 172.16.1.0/24
+    Net2SubnetPrivate2:
+      CIDR: 172.16.3.0/24
+    DestinationCidrBlock:
+      CIDR: 0.0.0.0/0
+#Resource-Mappings
+  ResourceMappings:
+    Net1VPC:
+      Name: Net1VPC
+    Net1InternetGateway:
+      Name: Net1InternetGateway
+    Net1VPCAttachGW:
+      Name: Net1VPCAttachGW
+    Net1NatGw1:
+      Name: Net1NatGw1
+    Net1NatGw2:
+      Name: Net1NatGw2
+    Net1ElasticIP1:
+      Name: Net1ElasticIP1
+    Net1ElasticIP2:
+      Name: Net1ElasticIP2
+    Resource:
+      Name: 172.16.3.0/24
+    Resource:
+      Name: 172.16.3.0/24
+    Resource:
+      Name: 172.16.3.0/24
+    Resource:
+      Name: 172.16.3.0/24
+    Resource:
+      Name: 172.16.3.0/24
+    Resource:
+      Name: 172.16.3.0/24
+    Resource:
+      Name: 172.16.3.0/24
+    Resource:
+      Name: 172.16.3.0/24
+    Resource:
+      Name: 172.16.3.0/24
+    Resource:
+      Name: 172.16.3.0/24
+    Resource:
+      Name: 172.16.3.0/24
+    Resource:
+      Name: 172.16.3.0/24
+    Resource:
+      Name: 172.16.3.0/24
+    Resource:
+      Name: 172.16.3.0/24
+    Resource:
+      Name: 172.16.3.0/24
+Resources:
+# Net1VPC 10.0.0.0/16  
+  Net1VPC: 
+    Type: "AWS::EC2::VPC"
+    Properties:
+      NAMEBlock: !FindInMap ['SubnetConfig', 'Net1VPC', 'CIDR']
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        -
+          Key: "Application"
+          Value:
+            Ref: "AWS::StackName"
+        -
+          Key: "Network"
+          Value: "Public"
+        -
+          Key: "Name"
+          Value: !FindInMap ['ResourceMappings', 'Net1VPC', 'Name']
+  Net1InternetGateway:
+    Type: "AWS::EC2::InternetGateway"
+  Net1VPCAttachGW:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      InternetGatewayId: !Ref Net1InternetGateway
+      VpcId: !Ref Net1VPC 
+  Net1NatGw1:
+    Type: "AWS::EC2::NatGateway"
+    Properties:
+      AllocationId: !GetAtt Net1ElasticIP1.AllocationId
+      SubnetId: !Ref Net1SubnetPublic1
+  Net1NatGw2:
+    Type: "AWS::EC2::NatGateway"
+    Properties:
+      AllocationId: !GetAtt Net1ElasticIP2.AllocationId
+      SubnetId: !Ref Net1SubnetPublic2
+#Net1ElasticIPs
+  Net1ElasticIP1:
+    DependsOn: Net1VPCAttachGW
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: vpc
+  Net1ElasticIP2:
+    DependsOn: Net1VPCAttachGW
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: vpc
+#Net1Subnets      
+  Net1SubnetPublic1:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs ]
+      VpcId: !Ref Net1VPC 
+      CidrBlock: !FindInMap ['SubnetConfig', 'Net1SubnetPublic1', 'CIDR']
+      MapPublicIpOnLaunch: true
+#Example of Naming - vpc-0d77c7bd70b1f6d0a-public-a
+  Net1SubnetPublic2:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select [1, !GetAZs ]
+      VpcId: !Ref Net1VPC 
+      CidrBlock: !FindInMap ['SubnetConfig', 'Net1SubnetPublic2', 'CIDR']
+      MapPublicIpOnLaunch: true
+  Net1SubnetPrivate1:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs ]
+      VpcId: !Ref Net1VPC 
+      CidrBlock: !FindInMap ['SubnetConfig', 'Net1SubnetPrivate1', 'CIDR']
+      MapPublicIpOnLaunch: true
+  Net1SubnetPrivate2:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select [1, !GetAZs ]
+      VpcId: !Ref Net1VPC 
+      CidrBlock: !FindInMap ['SubnetConfig', 'Net1SubnetPrivate2', 'CIDR']
+      MapPublicIpOnLaunch: true
+#Net1PrivateRoutes
+  Net1PrivateRouteTable1:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref Net1VPC 
+  Net1PrivateRoute1:
+    Type: "AWS::EC2::Route"
+    Properties:
+      DestinationCidrBlock: !FindInMap ['SubnetConfig', 'DestinationCidrBlock', 'CIDR']
+      NatGatewayId: !Ref Net1NatGw1
+      RouteTableId: !Ref Net1PrivateRouteTable1
+  Net1PrivateRouteTableAssoc1:
+    DependsOn: Net1SubnetPrivate1
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref Net1PrivateRouteTable1
+      SubnetId: !Ref Net1SubnetPrivate1   
+  Net1PrivateRouteTable2:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref Net1VPC 
+  Net1PrivateRoute2:
+    Type: "AWS::EC2::Route"
+    Properties:
+      DestinationCidrBlock: !FindInMap ['SubnetConfig', 'DestinationCidrBlock', 'CIDR']
+      NatGatewayId: !Ref Net1NatGw2
+      RouteTableId: !Ref Net1PrivateRouteTable2
+  Net1PrivateRouteTableAssoc2:
+    DependsOn: Net1SubnetPrivate2
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref Net1PrivateRouteTable2
+      SubnetId: !Ref Net1SubnetPrivate2
+#Net1PublicRoutes
+  Net1PublicRouteTable1:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref Net1VPC 
+  Net1PublicRoute1:
+    Type: "AWS::EC2::Route"
+    DependsOn: Net1VPCAttachGW
+    Properties:
+      DestinationCidrBlock: !FindInMap ['SubnetConfig', 'DestinationCidrBlock', 'CIDR']
+      GatewayId: !Ref Net1InternetGateway
+      RouteTableId: !Ref Net1PublicRouteTable1
+  Net1PublicRouteTableAssoc1:
+    DependsOn: Net1SubnetPublic1
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref Net1PublicRouteTable1
+      SubnetId: !Ref Net1SubnetPublic1   
+  Net1PublicRouteTable2:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref Net1VPC
+  Net1PublicRoute2:
+    Type: "AWS::EC2::Route"
+    DependsOn: Net1VPCAttachGW
+    Properties:
+      DestinationCidrBlock: !FindInMap ['SubnetConfig', 'DestinationCidrBlock', 'CIDR']
+      GatewayId: !Ref Net1InternetGateway
+      RouteTableId: !Ref Net1PublicRouteTable2
+  Net1PublicRouteTableAssoc2:
+    DependsOn: Net1SubnetPublic2
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref Net1PublicRouteTable2
+      SubnetId: !Ref Net1SubnetPublic2
+
+#Net2VPC 172.16.0.0/16        
+  Net2VPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: !FindInMap ['SubnetConfig', 'Net2VPC', 'CIDR']
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+  Net2InternetGateway:
+    Type: "AWS::EC2::InternetGateway"
+  Net2VPCAttachGW:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      InternetGatewayId: !Ref Net2InternetGateway
+      VpcId: !Ref Net2VPC
+  Net2NatGw1:
+    Type: "AWS::EC2::NatGateway"
+    Properties:
+      AllocationId: !GetAtt Net2ElasticIP1.AllocationId
+      SubnetId: !Ref Net2SubnetPublic1
+  Net2NatGw2:
+    Type: "AWS::EC2::NatGateway"
+    Properties:
+      AllocationId: !GetAtt Net2ElasticIP2.AllocationId
+      SubnetId: !Ref Net2SubnetPublic2
+#Net2ElasticIPs
+  Net2ElasticIP1:
+    DependsOn: Net2VPCAttachGW
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: vpc
+  Net2ElasticIP2:
+    DependsOn: Net2VPCAttachGW
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: vpc
+#Net2Subnets
+  Net2SubnetPublic1:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs ]
+      VpcId: !Ref Net2VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'Net2SubnetPublic1', 'CIDR']
+      MapPublicIpOnLaunch: true
+  Net2SubnetPublic2:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select [1, !GetAZs ]
+      VpcId: !Ref Net2VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'Net2SubnetPublic2', 'CIDR']
+      MapPublicIpOnLaunch: true
+  Net2SubnetPrivate1:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs ]
+      VpcId: !Ref Net2VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'Net2SubnetPrivate1', 'CIDR']
+      MapPublicIpOnLaunch: true
+  Net2SubnetPrivate2:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select [1, !GetAZs ]
+      VpcId: !Ref Net2VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'Net2SubnetPrivate2', 'CIDR']
+      MapPublicIpOnLaunch: true
+#Net2PrivateRoutes
+  Net2PrivateRouteTable1:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref Net2VPC
+  Net2PrivateRoute1:
+    Type: "AWS::EC2::Route"
+    Properties:
+      DestinationCidrBlock: !FindInMap ['SubnetConfig', 'DestinationCidrBlock', 'CIDR']
+      NatGatewayId: !Ref Net2NatGw1
+      RouteTableId: !Ref Net2PrivateRouteTable1
+  Net2PrivateRouteTableAssoc1:
+    DependsOn: Net2SubnetPrivate1
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref Net2PrivateRouteTable1
+      SubnetId: !Ref Net2SubnetPrivate1   
+  Net2PrivateRouteTable2:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref Net2VPC
+  Net2PrivateRoute2:
+    Type: "AWS::EC2::Route"
+    Properties:
+      DestinationCidrBlock: !FindInMap ['SubnetConfig', 'DestinationCidrBlock', 'CIDR']
+      NatGatewayId: !Ref Net2NatGw2
+      RouteTableId: !Ref Net2PrivateRouteTable2
+  Net2PrivateRouteTableAssoc2:
+    DependsOn: Net2SubnetPrivate2
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref Net2PrivateRouteTable2
+      SubnetId: !Ref Net2SubnetPrivate2
+#Net2PublicRoutes
+  Net2PublicRouteTable1:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref Net2VPC
+  Net2PublicRoute1:
+    Type: "AWS::EC2::Route"
+    DependsOn: Net2VPCAttachGW
+    Properties:
+      DestinationCidrBlock: !FindInMap ['SubnetConfig', 'DestinationCidrBlock', 'CIDR']
+      GatewayId: !Ref Net2InternetGateway
+      RouteTableId: !Ref Net2PublicRouteTable1
+  Net2PublicRouteTableAssoc1:
+    DependsOn: Net2SubnetPublic1
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref Net2PublicRouteTable1
+      SubnetId: !Ref Net2SubnetPublic1   
+  Net2PublicRouteTable2:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref Net2VPC
+  Net2PublicRoute2:
+    Type: "AWS::EC2::Route"
+    DependsOn: Net2VPCAttachGW
+    Properties:
+      DestinationCidrBlock: !FindInMap ['SubnetConfig', 'DestinationCidrBlock', 'CIDR']
+      GatewayId: !Ref Net2InternetGateway
+      RouteTableId: !Ref Net2PublicRouteTable2
+  Net2PublicRouteTableAssoc2:
+    DependsOn: Net2SubnetPublic2
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref Net2PublicRouteTable2
+      SubnetId: !Ref Net2SubnetPublic2       
+#VPCpeering
+  VPCpeer:
+    Type: "AWS::EC2::VPCPeeringConnection"
+    Properties:
+      PeerVpcId: !Ref Net2VPC
+      VpcId: !Ref Net1VPC
