@@ -171,29 +171,30 @@ Resources:
       SecurityGroupEgress:
         - 
           CidrIp: !FindInMap ['SubnetConfig', 'DestinationCidrBlock', 'CIDR']
-          IpProtocol: "-1"
-          ToPort: "-1"
+          IpProtocol: tcp
+          FromPort: -1
+          ToPort: -1
       SecurityGroupIngress:
         -
           CidrIp: !FindInMap ['SubnetConfig', 'DestinationCidrBlock', 'CIDR']
           IpProtocol: icmp
-          ToPort: "-1"
-          FromPort: "-1"
+          ToPort: -1
+          FromPort: -1
         -
           CidrIp: !FindInMap ['SubnetConfig', 'DestinationCidrBlock', 'CIDR']
           IpProtocol: tcp
-          ToPort: "443"
-          FromPort: "443"
+          ToPort: 443
+          FromPort: 443
         -
           CidrIp: !FindInMap ['SubnetConfig', 'DestinationCidrBlock', 'CIDR']
           IpProtocol: tcp
-          ToPort: "80"
-          FromPort: "80"
+          ToPort: 80
+          FromPort: 80
         -
           CidrIp: !FindInMap ['SubnetConfig', 'DestinationCidrBlock', 'CIDR']
           IpProtocol: tcp
-          ToPort: "22"
-          FromPort: "22"
+          ToPort: 22
+          FromPort: 22
       Tags:
         -
           Key: "Name"
@@ -204,8 +205,8 @@ Resources:
     Type: "AWS::EC2::VPC"
     Properties:
       CidrBlock: !FindInMap ['SubnetConfig', 'Net1VPC', 'CIDR']
-      EnableDnsHostnames: 'true'
-      EnableDnsSupport: 'true'
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
       Tags:
         -
           Key: "Name"
@@ -321,7 +322,6 @@ Resources:
       NatGatewayId: !Ref Net1NatGw1
       RouteTableId: !Ref Net1PrivateRouteTable1
   Net1PrivateRouteTableAssoc1:
-    DependsOn: Net1SubnetPrivate1
     Type: "AWS::EC2::SubnetRouteTableAssociation"
     Properties:
       RouteTableId: !Ref Net1PrivateRouteTable1
@@ -341,7 +341,6 @@ Resources:
       NatGatewayId: !Ref Net1NatGw2
       RouteTableId: !Ref Net1PrivateRouteTable2
   Net1PrivateRouteTableAssoc2:
-    DependsOn: Net1SubnetPrivate2
     Type: "AWS::EC2::SubnetRouteTableAssociation"
     Properties:
       RouteTableId: !Ref Net1PrivateRouteTable2
@@ -363,7 +362,6 @@ Resources:
       GatewayId: !Ref Net1InternetGateway
       RouteTableId: !Ref Net1PublicRouteTable1
   Net1PublicRouteTableAssoc1:
-    DependsOn: Net1SubnetPublic1
     Type: "AWS::EC2::SubnetRouteTableAssociation"
     Properties:
       RouteTableId: !Ref Net1PublicRouteTable1
@@ -384,7 +382,6 @@ Resources:
       GatewayId: !Ref Net1InternetGateway
       RouteTableId: !Ref Net1PublicRouteTable2
   Net1PublicRouteTableAssoc2:
-    DependsOn: Net1SubnetPublic2
     Type: "AWS::EC2::SubnetRouteTableAssociation"
     Properties:
       RouteTableId: !Ref Net1PublicRouteTable2
@@ -419,8 +416,8 @@ Resources:
     Type: "AWS::EC2::VPC"
     Properties:
       CidrBlock: !FindInMap ['SubnetConfig', 'Net2VPC', 'CIDR']
-      EnableDnsHostnames: 'true'
-      EnableDnsSupport: 'true'
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
       Tags:
         -
           Key: "Name"
@@ -536,7 +533,6 @@ Resources:
       NatGatewayId: !Ref Net2NatGw1
       RouteTableId: !Ref Net2PrivateRouteTable1
   Net2PrivateRouteTableAssoc1:
-    DependsOn: Net2SubnetPrivate1
     Type: "AWS::EC2::SubnetRouteTableAssociation"
     Properties:
       RouteTableId: !Ref Net2PrivateRouteTable1
@@ -556,7 +552,6 @@ Resources:
       NatGatewayId: !Ref Net2NatGw2
       RouteTableId: !Ref Net2PrivateRouteTable2
   Net2PrivateRouteTableAssoc2:
-    DependsOn: Net2SubnetPrivate2
     Type: "AWS::EC2::SubnetRouteTableAssociation"
     Properties:
       RouteTableId: !Ref Net2PrivateRouteTable2
@@ -578,7 +573,6 @@ Resources:
       GatewayId: !Ref Net2InternetGateway
       RouteTableId: !Ref Net2PublicRouteTable1
   Net2PublicRouteTableAssoc1:
-    DependsOn: Net2SubnetPublic1
     Type: "AWS::EC2::SubnetRouteTableAssociation"
     Properties:
       RouteTableId: !Ref Net2PublicRouteTable1
@@ -599,7 +593,6 @@ Resources:
       GatewayId: !Ref Net2InternetGateway
       RouteTableId: !Ref Net2PublicRouteTable2
   Net2PublicRouteTableAssoc2:
-    DependsOn: Net2SubnetPublic2
     Type: "AWS::EC2::SubnetRouteTableAssociation"
     Properties:
       RouteTableId: !Ref Net2PublicRouteTable2
