@@ -1,4 +1,10 @@
 AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  EnvironmentName:
+    Description: Environment Name
+    Type: String
+    AllowedValues: [Development, Production]
+    ConstraintDescription: Must be Development or Production
 Mappings:
 #Subnet-Mappings
   SubnetConfig:
@@ -198,8 +204,8 @@ Resources:
     Type: "AWS::EC2::VPC"
     Properties:
       CidrBlock: !FindInMap ['SubnetConfig', 'Net1VPC', 'CIDR']
-      EnableDnsHostnames: 'true'
-      EnableDnsSupport: 'true'
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
       Tags:
         -
           Key: "Name"
