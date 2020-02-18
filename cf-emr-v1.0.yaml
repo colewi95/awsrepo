@@ -41,6 +41,11 @@ Resources:
         -
           Key: "Name"
           Value: !FindInMap ['ResourceMappings', 'Net1InternetGateway', 'Name']
+  Net1VPCAttachGW:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      InternetGatewayId: !Ref Net1InternetGateway
+      VpcId: !Ref Net1VPC 
   #Net1ElasticIPs
   Net1ElasticIP1:
     DependsOn: Net1VPCAttachGW
