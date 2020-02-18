@@ -1,14 +1,51 @@
 AWSTemplateFormatVersion: 2010-09-09
 
 Parameters:
+
+  SnapToRestore:
+    Type: String
+    Default: ""
+    Description: snap id to restore
+
+  EnvironmentSize:
+    Type: String
+    Default: SMALL
+    AllowedValues:
+      - SMALL
+      - MEDIUM
+      - LARGE
+    Description: Select Environment Size (S,M,L)
+
+  DatabaseName:
+    Type: String
+    Default: wordpress
+    MinLength: 1
+    MaxLength: 64
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+
+  DatabaseUser:
+    Type: String
+    MinLength: 1
+    MaxLength: 16
+    Default: wordpress
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+
+  DatabasePassword:
+    Type: String
+    MinLength: 8
+    MaxLength: 41
+    Default: w0rdpr355
+    NoEcho: true
+    AllowedPattern: "[a-zA-Z0-9]*"
+
   ENVIRONMENT:
     Type: String
     Description: Type of environment to provision
     Default: TEST
     AllowedValues:
-      - APP
-      - WEB
       - DB
+      - WEB
+      - DEV
       - TEST
 
 Mappings:
@@ -23,7 +60,7 @@ Mappings:
       CIDR: 10.0.64.0/19
     SubnetPrv2:
       CIDR: 10.0.96.0/19
-  
+
   RegionMap:
     us-east-1:
       AMALINUX: ami-062f7200baf2fa504
@@ -58,7 +95,7 @@ Mappings:
     SubnetPrv1:
       Name: Private Subnet 1
     SubnetPrv2:
-      Name: Private Subnet 2 
+      Name: Private Subnet 2
     MyInternetGateway:
       Name: VPC IGW
     MyPubRouteTable:
@@ -71,7 +108,7 @@ Mappings:
       Name: Private Route for Private Subnet 1
     PrivateRouteTable2:
       Name: Private Route for Private Subnet 2
-    APPSG:
+    DEVSG:
       Name: Application Security Group
     WEBSG:
       Name: Web Security Group
@@ -82,18 +119,53 @@ Mappings:
     S3AppBucket:
       Name: Application Files Bucket
     WEBEC2:
-      Name: Web Instance 
-    
+      Name: Web Instance
+    TESTEC2:
+      Name: Test Instance
+    DBEC2:
+      Name: Database Instance
+    DEVEC2:
+      Name: Developer Instance
 
   InstanceSize:
-    APP:
-      "EC2" : "t3.micro"
-    WEB:
+    SMALL:
       "EC2" : "t2.micro"
+      "DB" : "db.t2.micro"
+    MEDIUM:
+      "EC2" : "t2.small"
+      "DB": "db.t2.small"
+    LARGE:
+      "EC2" : "t2.medium"
+      "DB" : "db.r3.xlarge"
     DB:
-      "EC2" : "t3.micro"
+      "EC2" : "t2.large"
+      "DB" : "db.r3.xlarge"
+    DEV:
+      "EC2" : "t2.small"
+      "DB": "db.t2.small"
     TEST:
       "EC2" : "t2.micro"
+      "DB": "db.t2.micro"
+    WEB:
+      "EC2" : "t2.small"
+      "DB": "db.t2.small"
+
+Conditions:
+  isLarge:
+    !Equals [!Ref EnvironmentSize, "LARGE"]
+  isntLarge:
+    !Not [!Equals [!Ref EnvironmentSize, "LARGE"]]
+  isRestore:
+    !Not [!Equals [!Ref SnapToRestore, ""]]
+  isDB:
+    !Equals [!Ref ENVIRONMENT, "DB"]
+  isWEB:
+    !Equals [!Ref ENVIRONMENT, "WEB"]
+  isDEV:
+    !Equals [!Ref ENVIRONMENT, "DEV"]
+  isTEST:
+    !Equals [!Ref ENVIRONMENT, "TEST"]
+
 
 Resources:
   VPC:
@@ -266,7 +338,7 @@ Resources:
        RouteTableId: !Ref PrivateRouteTable2
        DestinationCidrBlock: 0.0.0.0/0
        NatGatewayId: !Ref NatGatewayTwo
-       
+
 
   PrivateRouteTable2Association:
      Type: AWS::EC2::SubnetRouteTableAssociation
@@ -274,7 +346,7 @@ Resources:
        RouteTableId: !Ref PrivateRouteTable2
        SubnetId: !Ref SubnetPrv2
 
-  APPSG:
+  DEVSG:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
       GroupDescription: Security Group for all Application Instances
@@ -283,22 +355,23 @@ Resources:
         -
           CidrIp: 0.0.0.0/0
           IpProtocol: tcp
-          ToPort: "80"
-          FromPort: "80"
+          ToPort: 80
+          FromPort: 80
         -
           CidrIp: 0.0.0.0/0
           IpProtocol: tcp
-          ToPort: "22"
-          FromPort: "22"
+          ToPort: 22
+          FromPort: 22
       SecurityGroupEgress:
         -
           CidrIp: 0.0.0.0/0
-          ToPort: "-1"
-          IpProtocol: "-1"
+          ToPort: 65535
+          FromPort: 0
+          IpProtocol: tcp
       Tags:
         -
           Key: "Name"
-          Value: !FindInMap ['ResourceMap', 'APPSG', 'Name']
+          Value: !FindInMap ['ResourceMap', 'DEVSG', 'Name']
   WEBSG:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
@@ -308,22 +381,23 @@ Resources:
         -
           CidrIp: 0.0.0.0/0
           IpProtocol: tcp
-          ToPort: "80"
-          FromPort: "80"
+          ToPort: 80
+          FromPort: 80
         -
           CidrIp: 0.0.0.0/0
           IpProtocol: tcp
-          ToPort: "22"
-          FromPort: "22"
+          ToPort: 22
+          FromPort: 22
       SecurityGroupEgress:
         -
           CidrIp: 0.0.0.0/0
-          ToPort: "-1"
-          IpProtocol: "-1"  
+          ToPort: 65535
+          FromPort: 0
+          IpProtocol: tcp
       Tags:
         -
           Key: "Name"
-          Value: !FindInMap ['ResourceMap', 'WEBSG', 'Name'] 
+          Value: !FindInMap ['ResourceMap', 'WEBSG', 'Name']
 
   DBSG:
     Type: "AWS::EC2::SecurityGroup"
@@ -334,18 +408,19 @@ Resources:
         -
           CidrIp: 0.0.0.0/0
           IpProtocol: tcp
-          ToPort: "80"
-          FromPort: "80"
+          ToPort: 80
+          FromPort: 80
         -
           CidrIp: 0.0.0.0/0
           IpProtocol: tcp
-          ToPort: "22"
-          FromPort: "22"
+          ToPort: 22
+          FromPort: 22
       SecurityGroupEgress:
         -
           CidrIp: 0.0.0.0/0
-          ToPort: "-1"
-          IpProtocol: "-1"
+          ToPort: 65535
+          FromPort: 0
+          IpProtocol: tcp
       Tags:
         -
           Key: "Name"
@@ -360,18 +435,19 @@ Resources:
         -
           CidrIp: 0.0.0.0/0
           IpProtocol: tcp
-          ToPort: "80"
-          FromPort: "80"
+          ToPort: 80
+          FromPort: 80
         -
           CidrIp: 0.0.0.0/0
           IpProtocol: tcp
-          ToPort: "22"
-          FromPort: "22"
+          ToPort: 22
+          FromPort: 22
       SecurityGroupEgress:
         -
           CidrIp: 0.0.0.0/0
-          ToPort: "-1"
-          IpProtocol: "-1"
+          ToPort: 65535
+          FromPort: 0
+          IpProtocol: tcp
       Tags:
         -
           Key: "Name"
@@ -379,6 +455,7 @@ Resources:
 
   S3AppBucket:
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Type: "AWS::S3::Bucket"
     Properties:
       AccessControl: PublicRead
@@ -386,7 +463,7 @@ Resources:
         -
           Key: "Name"
           Value: !FindInMap ['ResourceMap', 'S3AppBucket', 'Name']
-  
+
   BucketPolicyApp:
     Type: "AWS::S3::BucketPolicy"
     Properties:
@@ -402,19 +479,19 @@ Resources:
             Principal:
               AWS:
                 - "*"
-  
+
   VPCEndpointforS3:
     Type: AWS::EC2::VPCEndpoint
-    DependsOn: VPC
     Properties:
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
       VpcId: !Ref VPC
-    
-  WEBEC2: # for now this is in a public subnet, needs to be changed.
+
+  WEBEC2:
     Type: "AWS::EC2::Instance"
+    Condition: isWEB
     DeletionPolicy: Delete
     Properties:
-      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMALINUX] # Dynamic mapping + Pseudo Parameter
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMALINUX]
       InstanceType: !FindInMap [InstanceSize, !Ref ENVIRONMENT, EC2]
       KeyName: AdvancedCFN
       SecurityGroupIds:
@@ -428,9 +505,14 @@ Resources:
         "Fn::Base64":
           !Sub |
             #!/bin/bash
-            yum update aws-cfn-bootstrap -y # good practice - always do this.
+            yum update aws-cfn-bootstrap -y
             /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets www --region ${AWS::Region}
             yum update -y
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2 --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: "1"
+        Timeout: PT15M
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
@@ -465,7 +547,7 @@ Resources:
                 ensureRunning: "true"
                 files:
                   - "/etc/cfn/cfn-hup.conf"
-                  - "/etc/cfn/hooks.d/cfn-auto-reloader.conf" 
+                  - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
         install_www:
           packages:
             yum:
@@ -474,7 +556,250 @@ Resources:
             sysvinit:
               httpd:
                 enabled: "true"
-                ensureRunning: "true"          
+                ensureRunning: "true"
+
+  DEVEC2:
+    Type: "AWS::EC2::Instance"
+    Condition: isDEV
+    DeletionPolicy: Delete
+    Properties:
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMALINUX]
+      InstanceType: !FindInMap [InstanceSize, !Ref ENVIRONMENT, EC2]
+      KeyName: AdvancedCFN
+      SecurityGroupIds:
+        - !Ref DEVSG
+      SubnetId: !Ref 'SubnetPrv1'
+      Tags:
+        -
+          Key: "Name"
+          Value: !FindInMap ['ResourceMap', 'DEVEC2', 'Name']
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            #!/bin/bash
+            yum update aws-cfn-bootstrap -y
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets www --region ${AWS::Region}
+            yum update -y
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          www:
+            - "configure_cfn"
+            - "install_app"
+        configure_cfn:
+          files:
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.EC2.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets www --region ${AWS::Region}
+              mode: "000400"
+              owner: root
+              group: root
+            /etc/cfn/cfn-hup.conf:
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+                verbose=true
+                interval=5
+              mode: "000400"
+              owner: root
+              group: root
+          services:
+            sysvinit:
+              cfn-hup:
+                enabled: "true"
+                ensureRunning: "true"
+                files:
+                  - "/etc/cfn/cfn-hup.conf"
+                  - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+        install_app:
+          packages:
+            yum:
+              python: []
+          services:
+            sysvinit:
+              httpd:
+                enabled: "true"
+                ensureRunning: "true"
+
+  TESTEC2:
+    Type: "AWS::EC2::Instance"
+    Condition: isTEST
+    DeletionPolicy: Delete
+    Properties:
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMALINUX] 
+      InstanceType: !FindInMap [InstanceSize, !Ref ENVIRONMENT, EC2]
+      KeyName: AdvancedCFN
+      SecurityGroupIds:
+        - !Ref TESTSG
+      SubnetId: !Ref 'SubnetPub2'
+      Tags:
+        -
+          Key: "Name"
+          Value: !FindInMap ['ResourceMap', 'TESTEC2', 'Name']
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            #!/bin/bash
+            yum update aws-cfn-bootstrap -y # good practice - always do this.
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets www --region ${AWS::Region}
+            yum update -y
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          www:
+            - "configure_cfn"
+            - "install_test"
+        configure_cfn:
+          files:
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.EC2.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets www --region ${AWS::Region}
+              mode: "000400"
+              owner: root
+              group: root
+            /etc/cfn/cfn-hup.conf:
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+                verbose=true
+                interval=5
+              mode: "000400"
+              owner: root
+              group: root
+          services:
+            sysvinit:
+              cfn-hup:
+                enabled: "true"
+                ensureRunning: "true"
+                files:
+                  - "/etc/cfn/cfn-hup.conf"
+                  - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+        install_test:
+          packages:
+            yum:
+              httpd: []
+              mysql: []
+              php: []
+          services:
+            sysvinit:
+              httpd:
+                enabled: "true"
+                ensureRunning: "true"
+              mysql:
+                enabled: "true"
+                ensureRunning: "true"
+              php:
+                enabled: "true"
+                ensureRunning: "true"
+
+  DBEC2:
+    Type: "AWS::EC2::Instance"
+    Condition: isDB
+    DeletionPolicy: Delete
+    Properties:
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMALINUX] # Dynamic mapping + Pseudo Parameter
+      InstanceType: !FindInMap [InstanceSize, !Ref ENVIRONMENT, EC2]
+      KeyName: AdvancedCFN
+      SecurityGroupIds:
+        - !Ref DBSG
+      SubnetId: !Ref 'SubnetPrv2'
+      Tags:
+        -
+          Key: "Name"
+          Value: !FindInMap ['ResourceMap', 'DBEC2', 'Name']
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            #!/bin/bash
+            yum update aws-cfn-bootstrap -y # good practice - always do this.
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets www --region ${AWS::Region}
+            yum update -y
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          www:
+            - "configure_cfn"
+            - "install_sql"
+        configure_cfn:
+          files:
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.EC2.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets www --region ${AWS::Region}
+              mode: "000400"
+              owner: root
+              group: root
+            /etc/cfn/cfn-hup.conf:
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+                verbose=true
+                interval=5
+              mode: "000400"
+              owner: root
+              group: root
+          services:
+            sysvinit:
+              cfn-hup:
+                enabled: "true"
+                ensureRunning: "true"
+                files:
+                  - "/etc/cfn/cfn-hup.conf"
+                  - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+        install_sql:
+          packages:
+            yum:
+              mysql: []
+          services:
+            sysvinit:
+              msql:
+                enabled: "true"
+                ensureRunning: "true"
+
+  DB:
+    Type: "AWS::RDS::DBInstance"
+    Condition: isntLarge # added - only create the MySQL DB if its small/med
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      AllocatedStorage: "5"
+      DBInstanceClass: !FindInMap [InstanceSize, !Ref EnvironmentSize, DB] # Dynamic mapping + Pseudo Parameter
+      DBName: !If [isRestore, !Ref "AWS::NoValue", !Ref DatabaseName]
+      Engine: MySQL
+      StorageType: gp2
+      MasterUsername: !If [isRestore, !Ref "AWS::NoValue", !Ref DatabaseUser]
+      MasterUserPassword: !If [isRestore, !Ref "AWS::NoValue", !Ref DatabasePassword]
+      DBSnapshotIdentifier: !If [isRestore, !Ref SnapToRestore, !Ref "AWS::NoValue"]
+  DBAuroraCluster:
+    Type: "AWS::RDS::DBCluster"
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Condition: isLarge # only create if its a large EnvironmentSize
+    Properties:
+      DatabaseName: !If [isRestore, !Ref "AWS::NoValue", !Ref DatabaseName]
+      Engine: aurora
+      MasterUsername: !If [isRestore, !Ref "AWS::NoValue", !Ref DatabaseUser]
+      MasterUserPassword: !If [isRestore, !Ref "AWS::NoValue", !Ref DatabasePassword]
+      SnapshotIdentifier: !If [isRestore, !Ref SnapToRestore, !Ref "AWS::NoValue"]
+  DBAurora:
+    Type : "AWS::RDS::DBInstance"
+    Condition: isLarge # only create if its a large EnvironmentSize
+    Properties:
+      DBClusterIdentifier: !Ref DBAuroraCluster
+      Engine: aurora
+      DBInstanceClass: !FindInMap [InstanceSize, !Ref EnvironmentSize, DB]
+
 Outputs:
   vpcid:
     Description: ID of Infrastructure VPC
