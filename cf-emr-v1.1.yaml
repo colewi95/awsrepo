@@ -1,3 +1,9 @@
+Parameters:
+  Applications:
+    Type: String
+    AllowedValues:
+    - Sqoop
+    - Hive
 Mappings:  
   EMRMappings:
     EMRClusterName:
@@ -5,23 +11,17 @@ Mappings:
     KeyName:
       Default: emrkey
     MasterInstanceType:
-      Default: m3.xlarge
+      Default: t2.micro
     CoreInstanceType:
-      Default: m3.xlarge
+      Default: t2.micro
     NumberOfCoreInstances:
       Default: 2
-    SubnetID:
-      Default: !Ref Net1SubnetPublic1
     LogUri:
       Default: s3://emrcluster-logbucket/
     S3DataUri:
       Default: s3://emrcluster-databucket/
     ReleaseLabel:
       Default: emr-5.15.0
-    Applications:
-      Default:
-      - Sqoop
-      - Hive
 Conditions:
   Sqoop:
     Fn::Equals:
