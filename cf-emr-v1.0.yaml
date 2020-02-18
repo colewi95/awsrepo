@@ -23,6 +23,38 @@ Mappings:
       Name: Net1PublicRoute1
     Net1PublicRouteTableAssoc1:
       Name: Net1PublicRouteTableAssoc1
+  EMRMappings:
+    EMRClusterName:
+      Default: emrcluster
+    KeyName:
+      Default: emrkey
+    MasterInstanceType:
+      Default: m3.xlarge
+    CoreInstanceType:
+      Default: m3.xlarge
+    NumberOfCoreInstances:
+      Default: 2
+    SubnetID:
+      Default: !Ref Net1SubnetPublic1
+    LogUri:
+      Default: s3://emrcluster-logbucket/
+    S3DataUri:
+      Default: s3://emrcluster-databucket/
+    ReleaseLabel:
+      Default: emr-5.15.0
+    Applications:
+      Default:
+      - Sqoop
+      - Hive
+Conditions:
+  Sqoop:
+    Fn::Equals:
+    - Ref: Applications
+    - Sqoop
+  Hive:
+    Fn::Equals:
+    - Ref: Applications
+    - Hive
 Resources:
   Net1VPC: 
     Type: "AWS::EC2::VPC"
@@ -89,3 +121,96 @@ Resources:
     Properties:
       RouteTableId: !Ref Net1PublicRouteTable1
       SubnetId: !Ref Net1SubnetPublic1  
+  #EMR-Cluster
+  EMRCluster:
+    DependsOn:
+    - EMRClusterServiceRole
+    - EMRClusterinstanceProfileRole
+    - EMRClusterinstanceProfile
+    Type: AWS::EMR::Cluster
+    Properties:
+      Applications:
+      - Name: Ganglia
+      - Fn::If:
+        - Sqoop
+        - Name: Sqoop
+        - Ref: AWS::NoValue
+      - Fn::If:
+        - Hive
+        - Name: Hive
+        - Ref: AWS::NoValue
+      Configurations:
+      - Classification: Hive-site
+        ConfigurationProperties:
+          Hive.rootdir:
+            Ref: S3DataUri
+      - Classification: Hive
+        ConfigurationProperties:
+          Hive.emr.storageMode: s3
+      Instances:
+        Ec2KeyName:
+          Ref: KeyName
+        Ec2SubnetId:
+          Ref: SubnetID
+        MasterInstanceGroup:
+          InstanceCount: 1
+          InstanceType:
+            Ref: MasterInstanceType
+          Market: ON_DEMAND
+          Name: Master
+        CoreInstanceGroup:
+          InstanceCount:
+            Ref: NumberOfCoreInstances
+          InstanceType:
+            Ref: CoreInstanceType
+          Market: ON_DEMAND
+          Name: Core
+        TerminationProtected: false
+      VisibleToAllUsers: true
+      JobFlowRole:
+        Ref: EMRClusterinstanceProfile
+      ReleaseLabel:
+        Ref: ReleaseLabel
+      LogUri:
+        Ref: LogUri
+      Name:
+        Ref: EMRClusterName
+      AutoScalingRole: EMR_AutoScaling_DefaultRole
+      ServiceRole:
+        Ref: EMRClusterServiceRole
+  EMRClusterServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - elasticmapreduce.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole
+      Path: "/"
+  EMRClusterinstanceProfileRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforEC2Role
+      Path: "/"
+  EMRClusterinstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+      - Ref: EMRClusterinstanceProfileRole
