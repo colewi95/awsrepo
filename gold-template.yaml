@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: AWPRMIPS-1ASB-Apps01 - 10.140.22.0/24
-Mappings:
+#Mappings:
   #VPCId:
   #SubnetId:
   #KeyPairId: 
@@ -20,8 +20,7 @@ Mappings:
   #AMIIds:
     #Windows2016:
     #Windows2012:
-    #Linux:
-  
+    #Linux: 
 Resources:  
   FILL_INSTANCE_NAME:
     Type: AWS::EC2::Instance
