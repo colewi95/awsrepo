@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWPRMIPS-1ASB-Apps01 - 10.140.22.0/24
+Mappings:
+  VPCId:
+  SubnetId:
+  KeyPairId: 
+  SecurityGroupIds:
+    AWPRMIPS-SG-ACS_FUSE: 
+    AWPRMIPS-SG-ACS_EDV:
+    AWPRMIPS-SG-RMS:
+    AWPRMIPS-SG-EDW_TERRADATA:
+    AWPRMIPS-SG-ACS_OPENSHIFT:
+    AWPRMIPS-SG-CACHE:
+    AWPRMIPS-SG-EDW_TALEND:
+    AWPRMIPS-SG-ACS_MDACA:
+    AWPRMIPS-SG-EDW_EMR:
+    AWPRMIPS-SG-ODS_POSTGRES:
+    AWPRMIPS-SG-EDW_SQLFARM:
+    AWPRDHAE-SG-COR-CISCOCSR-G2:
+  SysemNameToIp:
+    MIPSWSRMSP01: 10.140.22.x
+    MIPSAPACSEDV01: 10.140.22.x
+    MIPSAPACSEDV02: 10.140.22.x
+    MIPSAPACSFSP01: 10.140.22.x
+    MIPSAPACSFSP02: 10.140.22.x
+    MIPSDBEDWDSP01: 10.140.22.x
+    MIPSDBEDWSMP01: 10.140.22.x
+    MIPSDBEDWVPP01: 10.140.22.x
+    MIPSDBEDWTDP01: 10.140.22.x
+    MIPSDBEDWTDP02: 10.140.22.x
+    MIPSDBEDWTDP03: 10.140.22.x
+    MIPSDBEDWTDP04: 10.140.22.x
+    MIPSDBEDWTDP05: 10.140.22.x
+    MIPSDBEDWTDP06: 10.140.22.x
+    MIPSAPJFGARTP01: 10.140.22.x
+    MIPSAPSNQBP01: 10.140.22.x
+    MIPSAPOCPAPPP01: 10.140.22.x
+    MIPSAPOCPAPPP02: 10.140.22.x
+    MIPSAPOCPAPPP03: 10.140.22.x
+    MIPSAPOCPINFP01: 10.140.22.x
+    MIPSAPOCPINFP02: 10.140.22.x
+    MIPSAPOCPINFP03: 10.140.22.x
+    MIPSAPOCPMSP01: 10.140.22.x
+    MIPSAPOCPMSP02: 10.140.22.x
+    MIPSAPOCPMSP03: 10.140.22.x
+    MIPSAPOCSGFSP01: 10.140.22.x
+    MIPSAPOCSGFSP02: 10.140.22.x
+    MIPSAPOCSGFSP03: 10.140.22.x
+    MIPSAPCACHEP01: 10.140.22.x
+    MIPSAPCACHEP02: 10.140.22.x
+    MIPSAPCACHEP03: 10.140.22.x
+    MIPSAPEDWTAP01: 10.140.22.x
+    MIPSAPEDWTAP02: 10.140.22.x
+    MIPSAPEDWTAP03: 10.140.22.x
+    MIPSAPACSMDP01: 10.140.22.x
+    MIPSAPACSMDP02: 10.140.22.x
+    MIPSAPACSMDP03: 10.140.22.x
+    MIPSEMRUSER: 10.140.22.x
+    MIPSEMRETL: 10.140.22.x
+    MIPSDBODSPGP01: 10.140.22.x
+    MIPSDBODSPGP02: 10.140.22.x
+    MIPSDBODSPGP03: 10.140.22.x
+    MIPSDBEDWSQLP01: 10.140.22.x
+    MIPSDBEDWSQLP02: 10.140.22.x
+    MIPSDBEDWSQLP03: 10.140.22.x
+    MIPSDBEDWSQLP04: 10.140.22.x
+  AMIIds:
+    Windows:
+    Linux:
+  
+Resources:  
+FILL_INSTANCE_NAME:
+  Type: AWS::EC2::Instance
+  Properties:
+    DisableApiTermination: true
+    BlockDeviceMappings:
+      -
+        DeviceName: "/dev/sda1"
+        Ebs:
+          VolumeSize: 200
+          VolumeType: gp2
+          DeleteOnTermination: true
+      -
+        DeviceName: "/dev/sdc"
+        Ebs:
+          VolumeSize: 200
+          VolumeType: gp2
+          DeleteOnTermination: false
+      -
+        DeviceName: "/dev/sdd"
+        Ebs:
+          VolumeSize: 200
+          VolumeType: gp2
+          DeleteOnTermination: false
+    InstanceType: t2.nano
+    ImageId: !FindInMap ['AMIIds', 'Windows',]
+    PrivateIpAddress: !FindInMap ['SystemNameToIp', 'FILL_SYSTEM_NAME',]
+    KeyName: !Ref KeyPairId
+    SecurityGroupIds: !FindInMap ['SecurityGroupIds', 'FILL_SECURITY_GROUP_NAME',]
+    SubnetId: !Ref SubnetId
+    Tags: 
+      - 
+        Key: "Solution"
+        Value: "value"
+      - 
+        Key: "Name"
+        Value: "value"
+      - 
+        Key: "Enviroment"
+        Value: "Prod"
