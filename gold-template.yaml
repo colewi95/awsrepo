@@ -69,42 +69,42 @@ Mappings:
     #Linux:
   
 Resources:  
-FILL_INSTANCE_NAME:
-  Type: AWS::EC2::Instance
-  Properties:
-    DisableApiTermination: true
-    BlockDeviceMappings:
-      -
-        DeviceName: "/dev/sda1"
-        Ebs:
-          VolumeSize: 200
-          VolumeType: gp2
-          DeleteOnTermination: true
-      -
-        DeviceName: "/dev/sdc"
-        Ebs:
-          VolumeSize: 200
-          VolumeType: gp2
-          DeleteOnTermination: false
-      -
-        DeviceName: "/dev/sdd"
-        Ebs:
-          VolumeSize: 200
-          VolumeType: gp2
-          DeleteOnTermination: false
-    InstanceType: t2.nano
-    ImageId: !FindInMap ['AMIIds', 'Windows',]
-    PrivateIpAddress: !FindInMap ['SystemNameToIp', 'FILL_SYSTEM_NAME',]
-    KeyName: !Ref KeyPairId
-    SecurityGroupIds: !FindInMap ['SecurityGroupIds', 'FILL_SECURITY_GROUP_NAME',]
-    SubnetId: !Ref SubnetId
-    Tags: 
-      - 
-        Key: "Solution"
-        Value: "value"
-      - 
-        Key: "Name"
-        Value: "value"
-      - 
-        Key: "Enviroment"
-        Value: "Prod"
+  FILL_INSTANCE_NAME:
+    Type: AWS::EC2::Instance
+    Properties:
+      DisableApiTermination: true
+      BlockDeviceMappings:
+        -
+          DeviceName: "/dev/sda1"
+          Ebs:
+            VolumeSize: 200
+            VolumeType: gp2
+            DeleteOnTermination: true
+        -
+          DeviceName: "/dev/sdc"
+          Ebs:
+            VolumeSize: 200
+            VolumeType: gp2
+            DeleteOnTermination: false
+        -
+          DeviceName: "/dev/sdd"
+          Ebs:
+            VolumeSize: 200
+            VolumeType: gp2
+            DeleteOnTermination: false
+      InstanceType: t2.nano
+      ImageId: !FindInMap ['AMIIds', 'Windows',]
+      PrivateIpAddress: !FindInMap ['SystemNameToIp', 'FILL_SYSTEM_NAME',]
+      KeyName: !Ref KeyPairId
+      SecurityGroupIds: !FindInMap ['SecurityGroupIds', 'FILL_SECURITY_GROUP_NAME',]
+      SubnetId: !Ref SubnetId
+      Tags: 
+        - 
+          Key: "Solution"
+          Value: "value"
+        - 
+          Key: "Name"
+          Value: "value"
+        - 
+          Key: "Enviroment"
+          Value: "Prod"
